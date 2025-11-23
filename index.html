@@ -3,255 +3,61 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>MMAx-Shoulder Diagnostic Tool</title>
-    
-    <link rel="stylesheet" href="https://pyscript.net/releases/2023.05.1/pyscript.css" />
-    <script defer src="https://pyscript.net/releases/2023.05.1/pyscript.js"></script>
-
-    <style>
-        /* CSS Styles */
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #eef2f5;
-            display: flex;
-            justify-content: center;
-            padding-top: 40px;
-            color: #333;
-        }
-        .card {
-            background: white;
-            width: 90%;
-            max-width: 700px;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            text-align: center;
-        }
-        h1 { color: #2c3e50; margin-bottom: 10px; }
-        h2 { color: #3498db; font-size: 1.5rem; margin-top: 20px; }
-        
-        .btn-container {
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            margin-top: 25px;
-        }
-
-        /* Styling the choice buttons */
-        button.choice-btn {
-            background-color: #fff;
-            border: 2px solid #3498db;
-            color: #3498db;
-            padding: 15px;
-            font-size: 1.1rem;
-            border-radius: 8px;
-            cursor: pointer;
-            transition: all 0.2s;
-        }
-        button.choice-btn:hover {
-            background-color: #3498db;
-            color: white;
-        }
-
-        /* Styling the Final Diagnosis result */
-        .result-box {
-            background-color: #d4edda;
-            border: 1px solid #c3e6cb;
-            color: #155724;
-            padding: 20px;
-            border-radius: 8px;
-            margin-top: 20px;
-            text-align: left;
-        }
-        .restart-btn {
-            margin-top: 30px;
-            background-color: #7f8c8d;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-    </style>
+    <title>Shoulder Diagnostic Tool~ Cyriax</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
 
-    <div class="card">
-        <h1>MMAx-Shoulder</h1>
-        <p style="color: #777;">Automated Diagnostic Decision Tree</p>
-        <hr>
+<div class="container">
+    <header>
+        <h1>🩺 Shoulder Diagnostic Engine</h1>
+        <p>Follow the clinical examination findings to reach a diagnosis.</p>
+            </header>
 
-        <div id="display-area">
-            <h2 id="question-text">Loading system...</h2>
-            <div id="options-container" class="btn-container"></div>
-        </div>
-    </div>
-
-    <py-script>
-        import js
-        from pyodide.ffi import create_proxy
-
-        # ====================================================================
-        # SECTION 1: DiagnosticNode Class Definition (YOUR CODE)
-        # ====================================================================
-        class DiagnosticNode:
-            def __init__(self, label, is_final_diagnosis=False):
-                self.label = label
-                self.is_final_diagnosis = is_final_diagnosis
-                self.children = {} 
-                self.diagnosis_list = []
-
-            def add_path(self, path_condition, child_node):
-                self.children[path_condition] = child_node
-
-            def get_next_node(self, condition):
-                return self.children.get(condition)
-
-        # ====================================================================
-        # SECTION 2: Building the Tree (YOUR CODE - EXACT COPY)
-        # ====================================================================
-        
-        # --- A. Limited Range Branch ---
-        arthritis_diagnoses = [
-            "Traumatic arthritis", "Monoarticular steroid-sensitive arthritis",
-            "Immobilizational arthritis", "Shoulder-hand syndrome",
-            "Haemarthrosis", "Crystal synovitis", "Septic arthritis",
-            "Primary tumours", "Metastases", "Aseptic necrosis",
-            "Osteonecrosis", "Rheumatoid-type arthritis"
-        ]
-        arthritis_node = DiagnosticNode("Arthritis", is_final_diagnosis=True)
-        arthritis_node.diagnosis_list = arthritis_diagnoses
-
-        shoulder_girdle_node = DiagnosticNode("Shoulder girdle problem", is_final_diagnosis=True)
-        acute_subacromial_bursitis_node = DiagnosticNode("Acute subacromial bursitis", is_final_diagnosis=True)
-        posterior_capsular_contraction_node = DiagnosticNode("Posterior capsular contraction", is_final_diagnosis=True)
-        subcoracoid_bursitis_node = DiagnosticNode("Subcoracoid bursitis / Anterior capsular contraction", is_final_diagnosis=True)
-
-        capsular_pattern_node = DiagnosticNode("Capsular pattern")
-        non_capsular_node = DiagnosticNode("Non-capsular patterns")
-        inert_structures_node_limited = DiagnosticNode("Inert structures other than the capsule")
-        limited_passive_elevation_node = DiagnosticNode("Limited passive elevation")
-        limited_passive_medial_rotation_node = DiagnosticNode("Limited passive medial rotation")
-        limited_passive_lateral_rotation_node = DiagnosticNode("Limited passive lateral rotation")
-        
-        limited_range_root = DiagnosticNode("Limited range")
-
-        limited_passive_elevation_node.add_path("1. Normal scapulohumeral range", shoulder_girdle_node)
-        limited_passive_elevation_node.add_path("2. Limited scapulohumeral range", acute_subacromial_bursitis_node)
-        inert_structures_node_limited.add_path("A. Limited passive elevation", limited_passive_elevation_node)
-        inert_structures_node_limited.add_path("B. Limited passive medial rotation", limited_passive_medial_rotation_node)
-        inert_structures_node_limited.add_path("C. Limited passive lateral rotation", limited_passive_lateral_rotation_node)
-        limited_passive_medial_rotation_node.add_path("Yes", posterior_capsular_contraction_node)
-        limited_passive_lateral_rotation_node.add_path("Yes", subcoracoid_bursitis_node)
-        non_capsular_node.add_path("Inert structures other than the capsule", inert_structures_node_limited)
-        capsular_pattern_node.add_path("Yes", arthritis_node)
-        limited_range_root.add_path("1. Capsular pattern is present", capsular_pattern_node)
-        limited_range_root.add_path("2. Non-capsular pattern is present", non_capsular_node)
-
-        # --- B. Full Range Branch ---
-        pain_at_end_of_range_diagnoses = [
-            "Acromioclavicular sprain", "Chronic subdeltoid bursitis", "Lesion of conoid/trapezoid ligament"
-        ]
-        pain_at_end_of_range_node = DiagnosticNode("Inert structures other than the capsule", is_final_diagnosis=True)
-        pain_at_end_of_range_node.diagnosis_list = pain_at_end_of_range_diagnoses
-
-        see_overleaf_node = DiagnosticNode("Contractile structures", is_final_diagnosis=True)
-        see_overleaf_node.diagnosis_list = ["Muscle/Tendon Strain (Implied)"]
-
-        resisted_negative_node = DiagnosticNode("Resisted movements are negative")
-        resisted_positive_node = DiagnosticNode("Resisted movements are positive")
-        full_range_root = DiagnosticNode("Full range")
-
-        resisted_negative_node.add_path("Inert structures other than the capsule", pain_at_end_of_range_node)
-        resisted_positive_node.add_path("Contractile structures", see_overleaf_node)
-        full_range_root.add_path("Resisted movements are negative", resisted_negative_node)
-        full_range_root.add_path("Resisted movements are positive", resisted_positive_node)
-
-        # --- C. Excessive Range Branch ---
-        instability_diagnoses = ["Anterior instability", "Posterior instability", "Inferior instability"]
-        instability_node = DiagnosticNode("Instability", is_final_diagnosis=True)
-        instability_node.diagnosis_list = instability_diagnoses
-
-        positive_instability_node = DiagnosticNode("Positive instability tests")
-        excessive_range_root = DiagnosticNode("Excessive range")
-
-        positive_instability_node.add_path("Instability", instability_node)
-        excessive_range_root.add_path("Positive instability tests", positive_instability_node)
-
-        # --- Root ---
-        root_of_chart = DiagnosticNode("Interpretation of the clinical examination")
-        root_of_chart.add_path("1. Limited range", limited_range_root)
-        root_of_chart.add_path("2. Full range", full_range_root)
-        root_of_chart.add_path("3. Excessive range", excessive_range_root)
-
-        # ====================================================================
-        # SECTION 4: NEW WEB UI LOGIC (Replaces the input loop)
-        # ====================================================================
-        
-        current_node = root_of_chart
-
-        def handle_click(path):
-            """When a user clicks a button, update the current node."""
-            global current_node
-            # Move to the next node
-            current_node = current_node.children[path]
-            # Re-draw the screen
-            render_node()
-
-        def restart_app(event):
-            global current_node
-            current_node = root_of_chart
-            render_node()
-
-        def render_node():
-            """Updates the HTML to show the current node state."""
+    <main class="card">
+        {% if node.is_final_diagnosis %}
+            <div class="status success">Diagnosis Reached</div>
+            <h2>{{ node.label }}</h2>
             
-            # 1. clear previous buttons
-            container = js.document.getElementById("options-container")
-            container.innerHTML = ""
+            {% if node.diagnosis_list %}
+                <ul class="diagnosis-list">
+                    {% for item in node.diagnosis_list %}
+                        <li>{{ item }}</li>
+                    {% endfor %}
+                </ul>
+            {% else %}
+                <p>No specific sub-types listed.</p>
+            {% endif %}
+
+            <a href="/reset" class="btn btn-primary">Start New Diagnosis</a>
+
+        {% elif not paths %}
+            <div class="status error">End of Path</div>
+            <h2>{{ node.label }}</h2>
+            <p>No further paths defined in this logic tree.</p>
+            <a href="/reset" class="btn btn-secondary">Start Over</a>
+
+        {% else %}
+            <div class="status">Current Finding</div>
+            <h2>{{ node.label }}</h2>
+            <p>Select the next clinical finding:</p>
+
+            <form method="POST" action="/">
+                <div class="options-grid">
+                    {% for path in paths %}
+                        <button type="submit" name="choice" value="{{ loop.index0 }}" class="option-btn">
+                            {{ path }}
+                        </button>
+                    {% endfor %}
+                </div>
+            </form>
             
-            # 2. Set the question text
-            question_header = js.document.getElementById("question-text")
-            question_header.innerText = current_node.label
+            <div class="controls">
+                <a href="/reset" class="reset-link">Reset</a>
+            </div>
+        {% endif %}
+    </main>
+</div>
 
-            # 3. Check if Final Diagnosis
-            if current_node.is_final_diagnosis:
-                result_html = "<div class='result-box'><h3>Potential Diagnosis Group</h3>"
-                
-                if current_node.diagnosis_list:
-                    result_html += "<ul>"
-                    for diag in current_node.diagnosis_list:
-                        result_html += f"<li>{diag}</li>"
-                    result_html += "</ul>"
-                else:
-                    result_html += "<p>Consult detailed clinical notes.</p>"
-                
-                result_html += "</div>"
-                
-                # Add restart button
-                result_html += "<button id='restart-btn' class='restart-btn'>Start Over</button>"
-                
-                container.innerHTML = result_html
-                
-                # Attach click event to restart button
-                js.document.getElementById("restart-btn").onclick = create_proxy(restart_app)
-                return
-
-            # 4. If not final, create buttons for children
-            for path in current_node.children:
-                btn = js.document.createElement("button")
-                btn.className = "choice-btn"
-                btn.innerText = path
-                
-                # This is a specific Python-to-JS trick to handle button clicks with arguments
-                # We use a lambda to capture the specific 'path' for this button
-                btn.onclick = create_proxy(lambda e, p=path: handle_click(p))
-                
-                container.appendChild(btn)
-
-        # Start the app
-        render_node()
-
-    </py-script>
 </body>
 </html>
